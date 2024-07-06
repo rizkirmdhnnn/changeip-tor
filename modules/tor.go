@@ -2,6 +2,7 @@ package modules
 
 import (
 	"fmt"
+	"go-changeip-tor/config"
 	"log"
 	"net"
 	"os/exec"
@@ -31,7 +32,7 @@ func (t *Tor) Init() {
 
 func (t *Tor) ChangeIP() {
 	conn, _ := net.Dial("tcp", t.ControlAddress)
-	fmt.Fprintf(conn, "AUTHENTICATE \"rizkirmdhn\"\r\n")
+	fmt.Fprintf(conn, "AUTHENTICATE \"%s\"\r\n", config.Cfg.TORCONTROL_PASSWORD)
 	fmt.Fprintf(conn, "SIGNAL NEWNYM\r\n")
 	time.Sleep(1 * time.Second)
 	fmt.Println("IP Changed")
