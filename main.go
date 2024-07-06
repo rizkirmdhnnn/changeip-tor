@@ -16,12 +16,13 @@ func newHttpProxy(addr string) (*http.Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	httpTransport := &http.Transport{
-		Dial: dialer.Dial,
-	}
+
 	httpClient := &http.Client{
-		Transport: httpTransport,
+		Transport: &http.Transport{
+			Dial: dialer.Dial,
+		},
 	}
+
 	return httpClient, nil
 }
 
@@ -43,13 +44,8 @@ func getData(url string) {
 }
 
 func main() {
-
 	config.LoadConfig()
-
-	tor := modules.Tor{
-		ControlAddress: config.Cfg.TORCONTROL_ADDRESS,
-	}
-
+	tor := modules.NewTor(config.Cfg.TORCONTROL_ADDRESS)
 	tor.Init()
 	for {
 		tor.ChangeIP()

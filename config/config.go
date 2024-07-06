@@ -1,8 +1,9 @@
 package config
 
 import (
-	"github.com/spf13/viper"
 	"log"
+
+	"github.com/spf13/viper"
 )
 
 // struct for configuration
@@ -12,7 +13,7 @@ type conf struct {
 	TORCONTROL_ADDRESS  string
 }
 
-var Cfg conf
+var Cfg *conf
 
 func LoadConfig() {
 	viper.AddConfigPath(".")

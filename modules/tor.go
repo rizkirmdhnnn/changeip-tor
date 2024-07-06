@@ -12,6 +12,12 @@ type Tor struct {
 	ControlAddress string
 }
 
+func NewTor(ctrlServer string) *Tor {
+	return &Tor{
+		ControlAddress: ctrlServer,
+	}
+}
+
 func (t *Tor) Init() {
 	cmd := exec.Command("tor")
 	err := cmd.Start()
