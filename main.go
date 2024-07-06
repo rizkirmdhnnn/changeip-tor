@@ -2,62 +2,58 @@ package main
 
 import (
 	"fmt"
+	"go-changeip-tor/config"
+	"go-changeip-tor/modules"
+	"golang.org/x/net/proxy"
 	"io"
 	"log"
-	"net"
 	"net/http"
-	"os/exec"
 	"time"
-
-	"golang.org/x/net/proxy"
 )
 
-const torProxy = "socks5://127.0.0.1:9050"
+func newHttpProxy(addr string) (*http.Client, error) {
+	dialer, err := proxy.SOCKS5("tcp", addr, nil, proxy.Direct)
+	if err != nil {
+		return nil, err
+	}
+	httpTransport := &http.Transport{
+		Dial: dialer.Dial,
+	}
+	httpClient := &http.Client{
+		Transport: httpTransport,
+	}
+	return httpClient, nil
+}
+
+func getData(url string) {
+	httpClient, err := newHttpProxy(config.Cfg.TORSERVER_ADDRESS)
+	if err != nil {
+		log.Fatal(err)
+	}
+	res, err := httpClient.Get(url)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer res.Body.Close()
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(string(body))
+}
 
 func main() {
-	cmd := exec.Command("tor")
-	err := cmd.Start()
-	if err != nil {
-		log.Fatal("Gagal memulai Tor:", err)
+
+	config.LoadConfig()
+
+	tor := modules.Tor{
+		ControlAddress: config.Cfg.TORCONTROL_ADDRESS,
 	}
-	defer cmd.Process.Kill()
 
-	// Tunggu sebentar agar Tor siap
-	time.Sleep(5 * time.Second)
-
+	tor.Init()
 	for {
-		// Buat koneksi Tor baru
-		dialer, err := proxy.SOCKS5("tcp", "127.0.0.1:9050", nil, proxy.Direct)
-		if err != nil {
-			log.Fatal("Gagal membuat dialer:", err)
-		}
-
-		// Buat HTTP client yang menggunakan koneksi Tor
-		httpClient := &http.Client{
-			Transport: &http.Transport{
-				Dial: dialer.Dial,
-			},
-		}
-
-		// Periksa IP
-		resp, err := httpClient.Get("https://api.ipify.org")
-		if err != nil {
-			log.Println("Gagal mendapatkan IP:", err)
-		} else {
-			defer resp.Body.Close()
-			ip, err := io.ReadAll(resp.Body)
-			if err != nil {
-				log.Println("Gagal membaca respons:", err)
-			} else {
-				fmt.Printf("IP saat ini: %s\n", string(ip))
-			}
-		}
-
+		tor.ChangeIP()
+		getData("https://api.ipify.org")
 		time.Sleep(3 * time.Second)
-
-		conn, _ := net.Dial("tcp", "127.0.0.1:9051")
-		fmt.Fprintf(conn, "AUTHENTICATE \"rizkirmdhn\"\r\n")
-		fmt.Fprintf(conn, "SIGNAL NEWNYM\r\n")
-		time.Sleep(1 * time.Second)
 	}
 }
